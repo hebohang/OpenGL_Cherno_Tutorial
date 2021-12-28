@@ -88,7 +88,7 @@ int main(void)
             // 绑定 shader 和 传递 uniform
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
-
+             
             // 执行 drawcall
             renderer.Draw(va, ib, shader);
 
