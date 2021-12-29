@@ -17,6 +17,10 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 int main(void)
 {
     GLFWwindow* window;
@@ -75,11 +79,11 @@ int main(void)
         IndexBuffer ib(indices, 6);
 
         glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
 
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
         shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
-        shader.SetUniformMat4f("u_MVP", proj);
 
         Texture texture("res/textures/ChernoLogo.png");
         texture.Bind(0);
@@ -92,6 +96,16 @@ int main(void)
 
         Renderer renderer;
 
+        /* Setup Dear ImGui context */
+        const char* glsl_version = "#version 130";
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init(glsl_version);
+        ImGui::StyleColorsDark();
+
+        glm::vec3 translation(-1, 0, 0);
+
         float r = 0.0f;
         float increment = 0.05f;
 
@@ -101,9 +115,18 @@ int main(void)
             /* Render here */
             renderer.Clear();
 
+            // Start the Dear ImGui frame
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), translation); //glm::scale(glm::mat4(1.0f), glm::vec3(2, 2, 2));
+            glm::mat4 mvp = proj * view * model;
+
             // 绑定 shader 和 传递 uniform
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
+            shader.SetUniformMat4f("u_MVP", mvp);
 
             // 执行 drawcall
             renderer.Draw(va, ib, shader);
@@ -115,6 +138,14 @@ int main(void)
 
             r += increment;
 
+            {
+                ImGui::SliderFloat3("Translation", &translation.x, -2.0f, 2.0f); 
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            }
+
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
             /* Swap front and back buffers */
             glfwSwapBuffers(window);
 
@@ -122,6 +153,11 @@ int main(void)
             glfwPollEvents();
         }
     }
+
+    // Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
     return 0;
